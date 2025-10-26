@@ -1,0 +1,10 @@
+# Diagnostic artifacts generated during lucide/type-check work
+.lucide_exports.txt
+.lucide_map.json
+.lucide_missing.json
+.lucide_require_report.json
+scripts/
+/.vscode/
+node_modules/
+dist/
+/.parcel-cache/
