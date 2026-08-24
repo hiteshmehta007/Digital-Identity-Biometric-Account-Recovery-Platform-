@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
+import SignInButton from './onboarding/SignInButton';
 import { Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import nuvanaLogo from 'figma:asset/87017c5a5f2a74b5b140c86ec9c9cfa37a2365e1.png';
+import nuvanaLogo from '../assets/87017c5a5f2a74b5b140c86ec9c9cfa37a2365e1.png';
 
 interface NavbarProps {
   onCreateAccount?: () => void;
@@ -84,9 +85,7 @@ export function Navbar({ onCreateAccount }: NavbarProps = {}) {
                 />
               </motion.a>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button variant="outline" className="border-teal-700 text-teal-700 hover:bg-teal-50">
-                  Sign In
-                </Button>
+                <SignInButton />
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button 
@@ -151,9 +150,7 @@ export function Navbar({ onCreateAccount }: NavbarProps = {}) {
                   Philosophy
                 </motion.a>
                 <div className="flex flex-col gap-2 mt-2">
-                  <Button variant="outline" className="border-teal-700 text-teal-700 hover:bg-teal-50 w-full">
-                    Sign In
-                  </Button>
+                  <SignInButton />
                   <Button 
                     className="bg-teal-700 hover:bg-teal-800 w-full"
                     onClick={() => {

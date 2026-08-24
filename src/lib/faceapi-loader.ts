@@ -70,13 +70,25 @@ export async function initializeFaceAPI(): Promise<void> {
         return;
       }
 
-      const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
-
-      await Promise.all([
-        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-        faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL)
-      ]);
+      // Use unpkg CDN for faster loading (no CORS issues, fast CDN)
+      // @vladmandic/face-api is the modern, actively maintained fork
+      const modelUrl = 'https://unpkg.com/@vladmandic/face-api@1.7.12/model/';
+      
+      console.info('[faceapi-loader] Loading models from', modelUrl);
+      
+      try {
+        // Load all models in parallel for speed
+        await Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(modelUrl).then(() => console.info('[faceapi-loader] Tiny face detector loaded')),
+          faceapi.nets.faceLandmark68Net.loadFromUri(modelUrl).then(() => console.info('[faceapi-loader] Face landmarks model loaded')),
+          faceapi.nets.faceExpressionNet.loadFromUri(modelUrl).then(() => console.info('[faceapi-loader] Face expression model loaded'))
+        ]);
+        
+        console.info('[faceapi-loader] All models loaded successfully from', modelUrl);
+      } catch (err) {
+        console.error('[faceapi-loader] Failed to load models:', err);
+        throw new Error(`Failed to load face-api models: ${err instanceof Error ? err.message : 'Unknown error'}. Please check your internet connection and try again.`);
+      }
 
       isInitialized = true;
       isInitializing = false;

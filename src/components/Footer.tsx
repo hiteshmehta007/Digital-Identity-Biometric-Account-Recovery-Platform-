@@ -1,6 +1,6 @@
 import { Globe } from 'lucide-react';
 import { motion } from 'motion/react';
-import nuvanaLogo from 'figma:asset/87017c5a5f2a74b5b140c86ec9c9cfa37a2365e1.png';
+import nuvanaLogo from '../assets/87017c5a5f2a74b5b140c86ec9c9cfa37a2365e1.png';
 
 export function Footer() {
   return (

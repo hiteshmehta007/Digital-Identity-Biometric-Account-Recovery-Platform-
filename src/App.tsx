@@ -8,9 +8,12 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Shield, Heart, Sparkles, Lock, ArrowRight, Info } from 'lucide-react';
 import { motion, useScroll, useTransform } from 'motion/react';
 import { AccountCreationFlow } from './components/onboarding/AccountCreationFlow';
+import AuthDemo from './demo/AuthDemo';
+import { FaceVerificationTest } from './components/FaceVerificationTest';
 
 export default function App() {
   const [showAccountCreation, setShowAccountCreation] = useState(false);
+  const [showFaceTest, setShowFaceTest] = useState(false);
   const { scrollY } = useScroll();
   const heroY = useTransform(scrollY, [0, 500], [0, 150]);
   const heroOpacity = useTransform(scrollY, [0, 300], [1, 0]);
@@ -22,6 +25,23 @@ export default function App() {
       document.documentElement.style.scrollBehavior = 'auto';
     };
   }, []);
+
+  // Check for test mode in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('test') === 'face') {
+      setShowFaceTest(true);
+    }
+  }, []);
+
+  // Dev/demo route: open the auth demo when path is /auth-demo
+  if (typeof window !== 'undefined' && window.location.pathname === '/auth-demo') {
+    return <AuthDemo />;
+  }
+
+  if (showFaceTest) {
+    return <FaceVerificationTest />;
+  }
 
   if (showAccountCreation) {
     return <AccountCreationFlow onClose={() => setShowAccountCreation(false)} />;

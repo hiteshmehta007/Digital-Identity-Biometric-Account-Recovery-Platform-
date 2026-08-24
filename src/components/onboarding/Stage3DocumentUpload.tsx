@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
@@ -13,8 +13,24 @@ export function Stage3DocumentUpload({ onNext, onBack }: Stage3Props) {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [extracted, setExtracted] = useState<null | {
+    fullName?: string;
+    dob?: string;
+    docNumber?: string;
+    address?: string;
+    issuingAuthority?: string;
+    docType?: string;
+  }>(null);
+  const [ocrError, setOcrError] = useState<string | null>(null);
+  const cryptoKeyRef = useRef<CryptoKey | null>(null);
+  const encryptedRef = useRef<string | null>(null);
+  const [editingDocNumber, setEditingDocNumber] = useState(false);
+  const [showFullNumber, setShowFullNumber] = useState(false);
 
   const acceptedFormats = [
     { name: 'Passport', icon: '🛂' },
@@ -78,13 +94,203 @@ export function Stage3DocumentUpload({ onNext, onBack }: Stage3Props) {
 
   const handleSubmit = async () => {
     if (!uploadedFile) return;
-    
+
+    // For PDFs we currently ask users to upload an image or capture with camera
+    if (uploadedFile.type === 'application/pdf') {
+      setOcrError('PDF detected — please upload an image (JPG/PNG) or capture a photo of the document for OCR.');
+      return;
+    }
+
     setIsProcessing(true);
-    // Simulate document verification
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    setIsProcessing(false);
-    onNext();
+    setOcrError(null);
+    try {
+      await runOcrOnFile(uploadedFile);
+      setIsProcessing(false);
+      // After OCR and user confirmation they can proceed
+      // Keep onNext for finalization flow; do not auto-advance until user confirms
+    } catch (err: any) {
+      console.error('OCR failed', err);
+      setOcrError(String(err?.message || err));
+      setIsProcessing(false);
+    }
   };
+
+  // Create a symmetric key and store for in-memory encryption of extracted data
+  const ensureCryptoKey = async () => {
+    if (!cryptoKeyRef.current) {
+      cryptoKeyRef.current = await window.crypto.subtle.generateKey(
+        { name: 'AES-GCM', length: 256 },
+        true,
+        ['encrypt', 'decrypt']
+      );
+    }
+    return cryptoKeyRef.current;
+  };
+
+  const encryptExtracted = async (data: object) => {
+    const key = await ensureCryptoKey();
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const encoded = new TextEncoder().encode(JSON.stringify(data));
+    const cipher = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
+    const b64 = `${arrayBufferToBase64(iv)}:${arrayBufferToBase64(cipher)}`;
+    encryptedRef.current = b64;
+    return b64;
+  };
+
+  const arrayBufferToBase64 = (buf: ArrayBuffer | Uint8Array) => {
+    const bytes = new Uint8Array(buf as ArrayBuffer);
+    let binary = '';
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, Array.prototype.slice.call(bytes, i, i + chunk));
+    }
+    return btoa(binary);
+  };
+
+  const maskDocNumber = (s?: string) => {
+    if (!s) return '';
+    if (s.length <= 4) return '••••';
+    return `${s.slice(0, 2)}••••••${s.slice(-2)}`;
+  };
+
+  // OCR flow using tesseract worker
+  const runOcrOnFile = async (file: File) => {
+    setScanning(true);
+    setExtracted(null);
+    setOcrError(null);
+
+    // Dynamically import tesseract to avoid issues with CJS/ESM interop in some bundlers
+    const t = await import('tesseract.js');
+    const createWorkerFn: any = (t && (t.createWorker ?? (t as any).default?.createWorker)) ?? null;
+    if (!createWorkerFn) {
+      throw new Error('Tesseract createWorker is unavailable');
+    }
+
+    // call createWorkerFn and await the returned worker (the library returns a Promise)
+    const worker = await createWorkerFn({ logger: (m: any) => {
+      // use logger to update a light progress UI if desired
+      // m.progress gives 0-1
+      // console.debug('tesseract', m);
+    }});
+
+    try {
+      await worker.load();
+      await worker.loadLanguage('eng');
+      await worker.initialize('eng');
+
+      // Convert file to data URL if not already
+      const imgData = await fileToDataURL(file);
+
+      // show a short 2.5s scanning animation for UX while OCR runs
+      const scanningDelay = new Promise(res => setTimeout(res, 2500));
+
+      const { data } = await worker.recognize(imgData);
+      await scanningDelay;
+
+      // Simple heuristics to extract fields from OCR text
+      const text = data.text || '';
+      const extractedFields = heuristicsExtract(text);
+      setExtracted(extractedFields);
+      await encryptExtracted(extractedFields);
+      await worker.terminate();
+      setScanning(false);
+      return extractedFields;
+    } catch (err) {
+      try { await worker.terminate(); } catch (e) {}
+      setScanning(false);
+      throw err;
+    }
+  };
+
+  const fileToDataURL = (file: File) => new Promise<string>((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(r.result as string);
+    r.onerror = () => reject(new Error('Failed to read file'));
+    r.readAsDataURL(file);
+  });
+
+  const heuristicsExtract = (text: string) => {
+    // naive regex-based extraction. Improvements: country-specific parsers.
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const joined = lines.join(' | ');
+    const nameMatch = joined.match(/([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
+    const dobMatch = joined.match(/(\b\d{2}[\/-]\d{2}[\/-]\d{2,4}\b)|(\b\d{4}-\d{2}-\d{2}\b)/);
+    const numberMatch = joined.match(/([A-Z0-9]{5,20})/g);
+    const docNum = numberMatch ? numberMatch[numberMatch.length - 1] : undefined;
+    const address = lines.slice(-3).join(', ');
+    const docType = detectDocType(joined);
+    return {
+      fullName: nameMatch?.[0],
+      dob: dobMatch?.[0],
+      docNumber: docNum,
+      address: address || undefined,
+      issuingAuthority: undefined,
+      docType
+    };
+  };
+
+  const detectDocType = (text: string) => {
+    const lower = text.toLowerCase();
+    if (lower.includes('passport') || lower.includes('passport no')) return 'Passport';
+    if (lower.includes('aadhaar') || lower.includes('aadhar')) return 'Aadhaar';
+    if (lower.includes('driver') || lower.includes('driving')) return 'Driver\'s License';
+    if (lower.includes('pan')) return 'PAN';
+    if (lower.includes('utility') || lower.includes('bill')) return 'Utility Bill';
+    return 'Identity Document';
+  };
+
+  // Camera capture helpers
+  const openCamera = async () => {
+    try {
+      setCameraOpen(true);
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+    } catch (err) {
+      console.error('Camera open failed', err);
+      setOcrError('Unable to access camera. Please allow camera permissions or upload an image.');
+      setCameraOpen(false);
+    }
+  };
+
+  const closeCamera = async () => {
+    setCameraOpen(false);
+    if (videoRef.current && videoRef.current.srcObject) {
+      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
+      tracks.forEach(t => t.stop());
+      videoRef.current.srcObject = null;
+    }
+  };
+
+  const captureFromCamera = async () => {
+    if (!videoRef.current) return;
+    const v = videoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = v.videoWidth || 1280;
+    canvas.height = v.videoHeight || 720;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/jpeg');
+    // Convert to File-like blob
+    const res = await fetch(dataUrl);
+    const blob = await res.blob();
+    const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+    setUploadedFile(file);
+    setPreviewUrl(dataUrl);
+    await closeCamera();
+  };
+
+  useEffect(() => {
+    return () => {
+      // ensure camera stopped
+      if (videoRef.current && videoRef.current.srcObject) {
+        (videoRef.current.srcObject as MediaStream).getTracks().forEach(t => t.stop());
+      }
+    };
+  }, []);
 
   return (
     <motion.div
@@ -195,6 +401,7 @@ export function Stage3DocumentUpload({ onNext, onBack }: Stage3Props) {
               accept="image/*,application/pdf"
               className="hidden"
               id="file-upload"
+              aria-label="Upload document file"
             />
             <Button
               onClick={() => fileInputRef.current?.click()}
@@ -225,6 +432,8 @@ export function Stage3DocumentUpload({ onNext, onBack }: Stage3Props) {
                 <button
                   onClick={removeFile}
                   className="absolute top-4 right-4 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 transition-colors"
+                  aria-label="Remove uploaded document"
+                  title="Remove uploaded document"
                 >
                   <X size={20} />
                 </button>
@@ -259,6 +468,143 @@ export function Stage3DocumentUpload({ onNext, onBack }: Stage3Props) {
                 <p className="text-blue-900 text-sm">
                   🔒 Your document will be encrypted before transmission and stored securely.
                 </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Camera capture and scanning controls */}
+      <div className="mt-4 flex gap-3 items-center">
+        <Button onClick={openCamera} variant="outline" aria-label="Capture document with camera">
+          Capture via Camera
+        </Button>
+        <Button onClick={() => fileInputRef.current?.click()} variant="outline" aria-label="Upload document file">
+          Upload from Device
+        </Button>
+        {ocrError && <div className="text-rose-600 text-sm">{ocrError}</div>}
+      </div>
+
+      {/* Scanning overlay */}
+      <AnimatePresence>
+        {scanning && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+            role="status"
+            aria-live="polite"
+          >
+            <div className="bg-white rounded-xl p-6 w-11/12 max-w-md text-center shadow-xl">
+              <div className="mb-4">
+                <div className="relative h-40 bg-gray-900 rounded overflow-hidden">
+                  {/* pulsing scan beam */}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                    animate={{ x: ['-100%', '100%'] }}
+                    transition={{ duration: 2.4, repeat: Infinity, ease: 'linear' }}
+                    style={{ mixBlendMode: 'screen' }}
+                  />
+                </div>
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Scanning your document securely…</h3>
+              <p className="text-sm text-gray-600 mb-4">We temporarily process the image in your browser and extract key fields.</p>
+              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden mb-3">
+                <motion.div className="bg-teal-600 h-2" animate={{ width: ['10%', '80%', '100%'] }} transition={{ duration: 2.5 }} />
+              </div>
+              <div className="flex justify-center">
+                <Button onClick={() => { /* allow users to cancel scan */ setScanning(false); }} variant="ghost">Cancel</Button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Extracted fields preview and edit */}
+      {extracted && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 bg-white border border-gray-200 rounded-2xl p-6">
+          <h4 className="text-lg font-semibold mb-3">Scanned details (editable)</h4>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-gray-700">Full name</label>
+              <input className="w-full mt-1 p-2 border rounded" value={extracted.fullName || ''} onChange={(e) => setExtracted({ ...extracted, fullName: e.target.value })} aria-label="Full name" />
+            </div>
+            <div>
+              <label className="text-sm text-gray-700">Date of birth</label>
+              <input className="w-full mt-1 p-2 border rounded" value={extracted.dob || ''} onChange={(e) => setExtracted({ ...extracted, dob: e.target.value })} aria-label="Date of birth" />
+            </div>
+            <div>
+              <label className="text-sm text-gray-700">Document number</label>
+              <div className="flex gap-2 items-center">
+                <input
+                  className="w-full mt-1 p-2 border rounded"
+                  value={editingDocNumber ? (extracted.docNumber || '') : (showFullNumber ? (extracted.docNumber || '') : maskDocNumber(extracted.docNumber))}
+                  onChange={(e) => setExtracted({ ...extracted, docNumber: e.target.value })}
+                  aria-label="Document number"
+                  readOnly={!editingDocNumber}
+                />
+                <Button variant="outline" size="sm" onClick={() => { if (editingDocNumber) { setEditingDocNumber(false); setShowFullNumber(false); } else { setEditingDocNumber(true); setShowFullNumber(true); } }} aria-label={editingDocNumber ? 'Save document number' : 'Edit document number'}>
+                  {editingDocNumber ? 'Save' : 'Edit'}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => setShowFullNumber(s => !s)} aria-label="Toggle show document number">
+                  {showFullNumber ? 'Hide' : 'Show'}
+                </Button>
+              </div>
+            </div>
+            <div>
+              <label className="text-sm text-gray-700">Document type</label>
+              <input className="w-full mt-1 p-2 border rounded" value={extracted.docType || ''} onChange={(e) => setExtracted({ ...extracted, docType: e.target.value })} aria-label="Document type" />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="text-sm text-gray-700">Address</label>
+              <textarea className="w-full mt-1 p-2 border rounded" value={extracted.address || ''} onChange={(e) => setExtracted({ ...extracted, address: e.target.value })} aria-label="Address" />
+            </div>
+          </div>
+
+            <div className="mt-4 flex items-center justify-end gap-2">
+            <Button onClick={() => { setExtracted(null); setPreviewUrl(null); setUploadedFile(null); }}>Re-scan</Button>
+            <Button variant="outline" onClick={() => { /* allow user to clear encrypted data */ encryptedRef.current = null; setExtracted(null); }}>Clear</Button>
+            <Button onClick={async () => {
+              setIsProcessing(true);
+              try {
+                await encryptExtracted(extracted);
+                // store a small, non-sensitive verification summary for downstream flows (used to populate QR / confirmation)
+                try {
+                  const summary = {
+                    docType: extracted.docType || 'Identity Document',
+                    submittedAt: new Date().toISOString(),
+                    name: extracted.fullName || undefined,
+                    // do NOT store full document numbers in sessionStorage; store masked representation only
+                    maskedDocNumber: extracted.docNumber ? maskDocNumber(extracted.docNumber) : undefined
+                  };
+                  sessionStorage.setItem('nuvana_verification_summary', JSON.stringify(summary));
+                } catch (e) {
+                  // ignore sessionStorage errors (private mode etc.)
+                }
+                setIsProcessing(false);
+                onNext();
+              } catch (e) {
+                setIsProcessing(false);
+                setOcrError('Failed to save scanned data.');
+              }
+            }} className="bg-teal-700 text-white">Save & Continue</Button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Camera modal */}
+      <AnimatePresence>
+        {cameraOpen && (
+          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <div className="bg-white rounded-lg w-11/12 max-w-lg p-4">
+              <div className="relative">
+                <video ref={videoRef} className="w-full h-64 bg-black rounded" playsInline muted aria-label="Camera preview" />
+                <button onClick={closeCamera} className="absolute top-2 right-2 bg-white rounded-full p-2" aria-label="Close camera"><X size={18} /></button>
+              </div>
+              <div className="mt-3 flex items-center justify-center gap-3">
+                <Button onClick={captureFromCamera} aria-label="Capture photo">Capture</Button>
+                <Button variant="outline" onClick={closeCamera} aria-label="Cancel camera">Cancel</Button>
               </div>
             </div>
           </motion.div>
