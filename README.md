@@ -19,7 +19,7 @@ The code is intentionally designed as a concept demo, not a production identity 
 
 ## Technical Implementation
 
-### 7) Three-step onboarding flow in detail
+### Three-step onboarding flow in detail
 
 The account creation flow is implemented in [src/components/onboarding/AccountCreationFlow.tsx](src/components/onboarding/AccountCreationFlow.tsx). It is a three-stage user journey with a progress bar.
 
@@ -45,7 +45,7 @@ The account creation flow is implemented in [src/components/onboarding/AccountCr
 
 There is no real backend identity store behind this flow. The app is front-end oriented and is intentionally simulating a verification experience rather than enforcing production-grade identity proofing.
 
-### 8) Facial recognition library, model, or API used
+### Facial recognition library, model, or API used
 
 The prototype uses `face-api.js`, specifically the browser-side models loaded via the `@vladmandic/face-api` package:
 
@@ -61,7 +61,7 @@ const modelUrl = 'https://unpkg.com/@vladmandic/face-api@1.7.12/model/';
 
 We chose this because it is easy to run in a browser demo, has a straightforward API for face detection and landmark analysis, and is a good fit for product prototypes and UX demos. It is not a production-grade biometric matching system.
 
-### 9) Client side, server side, or third-party service?
+### Client side, server side, or third-party service?
 
 This is currently client-side only. The face analysis runs in the browser using `face-api.js`, and the camera stream is fetched from the browser with `navigator.mediaDevices.getUserMedia()`.
 
@@ -74,7 +74,7 @@ This means:
 
 The code is closer to a UX prototype than a secure production verification service.
 
-### 10) How a match is determined
+### How a match is determined
 
 There is no real biometric matching threshold in this prototype. Instead, the app uses a set of rule-based quality gates rather than a true face similarity computation.
 
@@ -88,7 +88,7 @@ Examples from [src/components/onboarding/Stage2FaceVerification.tsx](src/compone
 
 In other words, this is not matching against a stored biometric template. It is a liveness-style quality gating mechanism for a demo flow.
 
-### 11) Format of the facial data stored
+### Format of the facial data stored
 
 The current implementation stores a captured image in the browser as a data URL:
 
@@ -100,7 +100,7 @@ This is exposed in the `FaceVerificationResult` interface in [src/components/onb
 
 The actual captured image is held in React state and can be reused in the UI, but there is no secure, server-side biometric database behind it.
 
-### 12) Handling a false negative
+### Handling a false negative
 
 A legitimate user who is not recognized is handled as a retry and guidance problem rather than as an automated fallback path.
 
@@ -112,7 +112,7 @@ Current behavior:
 
 This is a good UX pattern for a prototype, but it does not implement a production-quality recovery strategy for edge cases such as aging, severe lighting conditions, glasses, masks, or different camera setups.
 
-### 13) Preventing spoofing
+### Preventing spoofing
 
 The design includes some anti-spoofing cues, but not robust anti-spoofing.
 
@@ -125,7 +125,7 @@ The current prototype tries to reduce photo/video spoofing by requiring:
 
 This is a basic liveness check, not a reliable anti-spoofing system. It is not equivalent to passive liveness detection, 3D face depth analysis, challenge-response detection, or secure hardware-backed verification.
 
-### 14) Government ID linkage in technical terms
+### Government ID linkage in technical terms
 
 The government ID flow in [src/components/onboarding/Stage3DocumentUpload.tsx](src/components/onboarding/Stage3DocumentUpload.tsx) performs OCR and heuristic extraction, not true identity verification.
 
@@ -148,7 +148,7 @@ Then it uses regex-based heuristics to extract fields such as:
 
 This is a prototype OCR layer. It does not call a government or third-party verification API, and it does not validate the document against a live authority or cryptographic document credential.
 
-### 15) ID authenticity validation
+### ID authenticity validation
 
 The prototype does not validate true identity authenticity. It accepts the document as user-provided input and then runs OCR to extract structured data. There is no:
 
@@ -160,7 +160,7 @@ The prototype does not validate true identity authenticity. It accepts the docum
 
 A realistic production system would require stronger document verification and authenticity checks.
 
-### 16) Data structure linking account to facial data and ID record
+### Data structure linking account to facial data and ID record
 
 The main account flow is managed with React state in [src/components/onboarding/AccountCreationFlow.tsx](src/components/onboarding/AccountCreationFlow.tsx):
 
@@ -197,7 +197,7 @@ There is no actual relational schema or database join in the prototype. In produ
 - verification events
 - recovery attempts
 
-### 17) QR code generation
+### QR code generation
 
 The QR code is generated with the `react-qr-code` library in [src/components/onboarding/AccountCreatedSuccess.tsx](src/components/onboarding/AccountCreatedSuccess.tsx):
 
@@ -217,7 +217,7 @@ The QR payload is a JSON blob containing:
 
 This is a convenience for a prototype identity or service link, not a cryptographically secure verification token.
 
-### 18) Is the QR code signed or encrypted?
+### Is the QR code signed or encrypted?
 
 No. The QR payload is plain JSON text encoded into the QR code. There is no signature, no HMAC, and no encryption in the QR itself.
 
@@ -233,7 +233,7 @@ Because the code is plain text and unsigned, anyone could generate a QR with som
 
 Production systems would require signed tokens or server-issued challenge/response data.
 
-### 20) Backend identity-linking logic beyond frontend
+### Backend identity-linking logic beyond frontend
 
 The repository includes a mock backend: [server/provision-server.js](server/provision-server.js).
 
@@ -251,7 +251,7 @@ res.json({ ok: true, token, redirectUrl: 'http://localhost:3000/email/inbox', ma
 
 This is not a real identity-linking backend. It is a mock provisioning service for email access and demo flow behavior.
 
-### 21) API contract between frontend and backend
+### API contract between frontend and backend
 
 The actual contract is minimal and intentionally simple.
 
@@ -277,7 +277,7 @@ Response:
 
 The prototype does not have a real API contract for identity verification or account recovery. The verification data is mostly local and session-scoped, not uploaded to a real server.
 
-### 22) Concurrent recovery attempts on the same account
+### Concurrent recovery attempts on the same account
 
 This is not implemented in the prototype. There is no locking, queueing, or per-account state machine for recovery attempts.
 
@@ -289,7 +289,7 @@ In production, you would need:
 - risk scoring and attempt counting
 - rate-limited waiting windows
 
-### 23) What if the facial verification service is down or slow?
+### What if the facial verification service is down or slow?
 
 The current app does not implement a real fallback or timeout strategy beyond user-facing error messages when model loading fails or camera access is denied.
 
@@ -301,7 +301,7 @@ Examples:
 
 This is acceptable for a demo, but not for a production recovery system.
 
-### 24) Rate-limiting on recovery attempts
+### Rate-limiting on recovery attempts
 
 There is no rate-limiting or brute-force protection in the current implementation.
 
@@ -315,7 +315,7 @@ This is a major limitation because recovery flows are high-risk, and repeated at
 
 ## Security & Privacy
 
-### 25) Privacy and compliance considerations
+### Privacy and compliance considerations
 
 Biometric data is highly sensitive personal data and should be treated as such. This project explicitly frames privacy as a core value, but it does not implement a full GDPR-style or privacy-compliance architecture.
 
@@ -330,13 +330,13 @@ It does not yet include:
 - deletion or portability mechanisms
 - region-aware storage rules
 
-### 26) Where facial data is stored and whether it is encrypted at rest
+### Where facial data is stored and whether it is encrypted at rest
 
 In this prototype, facial data is primarily held in browser memory and session state. The face capture result is stored in React state and may also be written into `sessionStorage` in a minimal verification summary.
 
 There is in-memory encryption using Web Crypto for extracted ID data, but the app is not persisting a secure biometric database. There is no strong at-rest encryption model or key management infrastructure.
 
-### 27) If the database were breached, what is exposed?
+### If the database were breached, what is exposed?
 
 A leaked password hash is bad, but a leaked biometric template or raw face image is significantly worse because biometric data is not replaceable. A person cannot easily “reset” their face the way they can reset a password.
 
@@ -349,7 +349,7 @@ In this prototype, a breach would expose:
 
 This is significantly more sensitive and more difficult to remediate than a password hash leak.
 
-### 28) Raw images vs embeddings
+### Raw images vs embeddings
 
 The current prototype stores raw captured image data as a data URL. It does not create a derived face embedding or biometric template.
 
@@ -361,7 +361,7 @@ This matters because:
 
 A production system should prefer storing only a derived representation when possible, with careful encryption, access control, and policy boundaries.
 
-### 29) User consent for biometric data collection
+### User consent for biometric data collection
 
 There is a disclaimer acceptance state in the face verification flow, and the user must allow camera access. That is a helpful UX cue, but this is not a legal or compliance-grade consent system.
 
@@ -373,7 +373,7 @@ In production, consent should include:
 - ability to revoke or delete biometric data
 - separate policy and support contact
 
-### 30) Session or token handling after successful verification
+### Session or token handling after successful verification
 
 The project does not implement a full secure authentication or session model after verification.
 
@@ -385,7 +385,7 @@ const token = crypto.randomBytes(24).toString('hex');
 
 This is a demo token, not a secure JWT/OAuth session. The success flow does not issue a production-grade session or auth cookie following face verification. It simply moves the user into a success state.
 
-### 31) Auditing and logging recovery attempts
+### Auditing and logging recovery attempts
 
 There is no meaningful audit trail in the prototype. No attempt logs, no event IDs, no correlation identifiers, and no security monitoring hooks are present.
 
@@ -403,7 +403,7 @@ This is required for fraud investigation, compliance, and secure operations.
 
 ## Architecture, Trade-offs & Scale
 
-### 32) If this had to scale to 1 million users, what would break first?
+### If this had to scale to 1 million users, what would break first?
 
 The first thing that would break is not the landing page; it would be the lack of a real backend identity infrastructure.
 
@@ -417,7 +417,7 @@ The current bottlenecks are:
 
 At scale, the system would also need secure identity services, backend APIs, and cloud infrastructure designed for low latency and high availability.
 
-### 33) Why separate facial recognition OR government ID paths rather than requiring both?
+### Why separate facial recognition OR government ID paths rather than requiring both?
 
 This is a deliberate product design choice to reduce friction and to model recovery paths that are useful in different situations.
 
@@ -425,7 +425,7 @@ The idea is that users may not always have both a suitable ID and a face that is
 
 In a real deployment, multi-factor proofing is usually stronger when both are strongly validated and combined with additional trust signals.
 
-### 34) Typical latency and whether it is acceptable at scale
+### Typical latency and whether it is acceptable at scale
 
 For a browser-based demo, the pipeline can take several seconds because models must be downloaded and the camera detection loop runs continuously. The actual latency depends on the device, browser, and network connection.
 
@@ -436,7 +436,7 @@ For a prototype, this is acceptable. For scale and real-world account recovery w
 - better device handling and timeout policies
 - fallback paths for slow or unsupported hardware
 
-### 35) Supporting recovery on devices with no camera
+### Supporting recovery on devices with no camera
 
 This would require a different recovery journey. An alternative design would use:
 
@@ -448,7 +448,7 @@ This would require a different recovery journey. An alternative design would use
 
 The key principle is that the system should not rely on live camera capture when the device or environment cannot support it safely.
 
-### 36) Monitoring and alerting before production
+### Monitoring and alerting before production
 
 A production readiness checklist would include:
 
@@ -459,13 +459,13 @@ A production readiness checklist would include:
 - security logs for administrator review
 - health checks for external services and model endpoints
 
-### 37) Biggest technical risk today
+### Biggest technical risk today
 
 The single biggest technical risk is that the prototype is not a truly secure identity proofing system. The face verification and document review are convincingly designed, but the actual system does not verify authenticity, does not maintain reliable audit records, and does not provide secure biometric storage.
 
 This means the product could look convincing but still be easy to bypass or mis-handle in real life.
 
-### 38) What would be done differently from scratch
+### What would be done differently from scratch
 
 If the project started again, the main design changes would be:
 
@@ -476,7 +476,7 @@ If the project started again, the main design changes would be:
 - implement rate limiting, recovery lockouts, and audit logs
 - rely on risk-based, multi-step verification rather than a single local browser check
 
-### 39) What is missing from a production identity platform
+### What is missing from a production identity platform
 
 A production-grade identity platform would need much more than this prototype includes:
 
