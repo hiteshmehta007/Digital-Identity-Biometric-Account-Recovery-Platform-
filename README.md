@@ -16,7 +16,6 @@ The code is intentionally designed as a concept demo, not a production identity 
 - Success screen and QR generation: [src/components/onboarding/AccountCreatedSuccess.tsx](src/components/onboarding/AccountCreatedSuccess.tsx)
 - Face model loader: [src/lib/faceapi-loader.ts](src/lib/faceapi-loader.ts)
 - Mock backend: [server/provision-server.js](server/provision-server.js)
-- Branded email prototype: [Branded Email Service](Branded%20Email%20Service)
 
 ## Technical Implementation
 
