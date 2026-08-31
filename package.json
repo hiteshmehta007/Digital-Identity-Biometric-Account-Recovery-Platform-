@@ -1,5 +1,5 @@
 {
-      "name": "Nuvana Landing Page Design",
+      "name": "digital-identity-biometric-account-recovery-platform",
       "version": "0.1.0",
       "private": true,
       "dependencies": {
@@ -60,7 +60,7 @@
             "vite": "6.3.5"
       },
       "scripts": {
-            "dev": "vite",
+            "dev": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$ports = 3000,4173,5173,5174; foreach ($p in $ports) { $proc = Get-NetTCPConnection -LocalPort $p -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique; if ($proc) { Stop-Process -Id $proc -Force -ErrorAction SilentlyContinue; Write-Host 'Stopped pid $proc on port $p' } }; vite --host 127.0.0.1 --port 4173 --strictPort\"",
             "dev:provision": "node server/provision-server.js",
             "build": "vite build",
             "typecheck": "tsc --noEmit"

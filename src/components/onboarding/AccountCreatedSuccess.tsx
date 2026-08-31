@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Button } from '../ui/button';
 import { Mail, Download, Sparkles, Shield, ArrowRight } from 'lucide-react';
@@ -11,7 +10,7 @@ interface SuccessProps {
 
 export function AccountCreatedSuccess({ email, fullName }: SuccessProps) {
   const emotionalAlias = `${fullName.split(' ')[0]}'s Sanctuary`;
-  const identityCode = `NUVANA-${Date.now().toString(36).toUpperCase()}`;
+  const identityCode = `DIGITAL-IDENTITY-${Date.now().toString(36).toUpperCase()}`;
 
   const downloadQRCode = () => {
     const svg = document.getElementById('qr-code');
@@ -29,7 +28,7 @@ export function AccountCreatedSuccess({ email, fullName }: SuccessProps) {
       const pngFile = canvas.toDataURL('image/png');
 
       const downloadLink = document.createElement('a');
-      downloadLink.download = `nuvana-identity-${identityCode}.png`;
+      downloadLink.download = `digital-identity-${identityCode}.png`;
       downloadLink.href = pngFile;
       downloadLink.click();
     };
@@ -41,7 +40,7 @@ export function AccountCreatedSuccess({ email, fullName }: SuccessProps) {
   // document upload stage. This is intentionally a minimal summary (docType, submittedAt, masked number).
   const getVerificationSummary = () => {
     try {
-      const raw = sessionStorage.getItem('nuvana_verification_summary');
+      const raw = sessionStorage.getItem('digital_identity_verification_summary');
       if (!raw) return null;
       return JSON.parse(raw);
     } catch (e) {
@@ -60,78 +59,7 @@ export function AccountCreatedSuccess({ email, fullName }: SuccessProps) {
     }
   };
 
-  // Provision mailbox in the branded email service and establish session continuity.
-  const [provisioning, setProvisioning] = useState(false);
-  const [provisionError, setProvisionError] = useState<string | null>(null);
-  const [logs, setLogs] = useState<string[]>([]);
-
-  const log = (msg: string) => {
-    const entry = `${new Date().toISOString()} - ${msg}`;
-    setLogs((s) => [...s, entry]);
-    // keep console in sync for developer convenience
-    // eslint-disable-next-line no-console
-    console.debug('[provision-log]', entry);
-  };
-
-  const provisionMailbox = async () => {
-    try {
-      setProvisioning(true);
-      setProvisionError(null);
-      setLogs([]);
-      log('Starting provisioning flow');
-      // Decide API URL heuristically in dev vs prod
-      const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-      const apiUrl = isLocalhost ? 'http://localhost:4000/api/provision-mailbox' : '/api/provision-mailbox';
-      log(`Calling provisioning API: ${apiUrl}`);
-      // Call backend provisioning endpoint. Replace with your real API route.
-      const resp = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, fullName }),
-        credentials: 'include'
-      });
-
-      if (!resp.ok) {
-        log(`Provisioning API returned non-OK status: ${resp.status}`);
-        console.warn('Provisioning API returned non-OK:', resp.status);
-        setProvisionError(`Provisioning failed (${resp.status})`);
-        setProvisioning(false);
-        // don't immediate return — allow manual retry
-        return;
-      }
-
-      const data = await resp.json();
-      log('Provisioning response received');
-      // If backend returns a token for session continuity, set it as a cookie
-      if (data?.token) {
-        log('Received provisioning token from server');
-        // Set cookie for the current origin; expiry 7 days
-        const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toUTCString();
-        document.cookie = `nuvana_token=${data.token}; path=/; expires=${expires}; SameSite=Lax`;
-      }
-
-      // Redirect to the branded email dashboard (backend may provide a redirectUrl)
-      const target = data?.redirectUrl || '/email/inbox' || '/email/welcome';
-      log(`Redirecting to ${target}`);
-      // best-effort navigate in same tab
-      window.location.assign(target);
-    } catch (err) {
-      console.error('Provisioning failed:', err);
-      log(`Provisioning error: ${String(err)}`);
-      setProvisionError(String(err));
-      setProvisioning(false);
-    }
-  };
-
-  // Auto-run provisioning when this success screen mounts so users land directly in email
-  useEffect(() => {
-    // small delay to allow UI to render animations before redirecting
-    const t = window.setTimeout(() => {
-      provisionMailbox();
-    }, 400);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Account creation completed successfully. No automatic mailbox provisioning is shown in the success flow.
 
   return (
     <>
@@ -222,7 +150,7 @@ export function AccountCreatedSuccess({ email, fullName }: SuccessProps) {
       >
         <h3 className="mb-4">Your Identity Code</h3>
         <p className="text-gray-600 mb-6">
-          Save this QR code for quick access across Nuvana services
+          Save this QR code for quick access across Digital Identity services
         </p>
         
         <div className="inline-block bg-white p-6 rounded-xl border-2 border-gray-200 mb-4">
@@ -240,7 +168,7 @@ export function AccountCreatedSuccess({ email, fullName }: SuccessProps) {
               : `${fullName || email} · Created ${formatDisplayDate(createdIso)}`;
 
             const payload = {
-              service: 'nuvana',
+              service: 'digital-identity',
               email,
               fullName,
               identityCode,
@@ -307,7 +235,7 @@ export function AccountCreatedSuccess({ email, fullName }: SuccessProps) {
         </div>
         
         <p className="text-gray-700 mb-6">
-          Access all Nuvana services with one verified identity:
+          Access all Digital Identity services with one verified identity:
         </p>
         
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -341,18 +269,13 @@ export function AccountCreatedSuccess({ email, fullName }: SuccessProps) {
       >
         <div className="flex flex-col items-center gap-4">
           <Button
-            onClick={provisionMailbox}
+            onClick={() => window.location.assign('/')}
             className="bg-gradient-to-r from-teal-600 to-blue-600 hover:from-teal-700 hover:to-blue-700 text-white px-12 py-6 shadow-xl"
             size="lg"
-            disabled={provisioning}
           >
-            {provisioning ? 'Provisioning your mailbox…' : 'Access My Inbox'}
+            Continue to Dashboard
             <ArrowRight className="ml-2" size={20} />
           </Button>
-
-          {provisionError && (
-            <div className="text-sm text-rose-600">Unable to provision mailbox: {provisionError}. You can retry.</div>
-          )}
         </div>
         
         <p className="text-gray-500 text-sm mt-4">
@@ -385,34 +308,6 @@ export function AccountCreatedSuccess({ email, fullName }: SuccessProps) {
         ))}
       </div>
     </motion.div>
-      {/* Provisioning status modal */}
-      {(provisioning || provisionError) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-lg p-6 w-11/12 max-w-lg shadow-xl">
-            <h3 className="text-lg font-semibold mb-2">Provisioning your mailbox</h3>
-            <p className="text-sm text-gray-600 mb-4">This will create your mailbox and redirect you to the Nuvana Mail app.</p>
-            <div className="mb-4">
-              <div className="max-h-40 overflow-auto bg-slate-50 p-3 rounded text-sm border border-gray-100">
-                {logs.length === 0 ? (
-                  <div className="text-gray-400">Waiting for steps...</div>
-                ) : (
-                  logs.map((l, i) => (
-                    <div key={i} className="border-b border-gray-100 py-1">{l}</div>
-                  ))
-                )}
-              </div>
-            </div>
-            <div className="flex items-center justify-end gap-2">
-              {!provisioning && (
-                <>
-                  <Button onClick={provisionMailbox}>Retry</Button>
-                  <Button variant="outline" onClick={() => setProvisionError(null)}>Close</Button>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }

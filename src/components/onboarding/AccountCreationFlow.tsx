@@ -83,7 +83,7 @@ export function AccountCreationFlow({ onClose }: AccountCreationFlowProps) {
                 <span className="text-white">N</span>
               </div>
               <div>
-                <h3 className="text-gray-900">Nuvana Mail</h3>
+                <h3 className="text-gray-900">Digital Identity Recovery</h3>
                 <p className="text-sm text-gray-500">Account Creation</p>
               </div>
             </div>

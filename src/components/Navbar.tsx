@@ -1,15 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
-import SignInButton from './onboarding/SignInButton';
 import { Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import nuvanaLogo from '../assets/87017c5a5f2a74b5b140c86ec9c9cfa37a2365e1.png';
 
 interface NavbarProps {
   onCreateAccount?: () => void;
+  onSignIn?: () => void;
 }
 
-export function Navbar({ onCreateAccount }: NavbarProps = {}) {
+export function Navbar({ onCreateAccount, onSignIn }: NavbarProps = {}) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -37,17 +36,14 @@ export function Navbar({ onCreateAccount }: NavbarProps = {}) {
           {/* Logo */}
           <div className="flex items-center">
             <motion.div 
-              className="flex-shrink-0"
+              className="flex items-center gap-3 flex-shrink-0"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <motion.img 
-                src={nuvanaLogo} 
-                alt="Nuvana Logo" 
-                className="h-12 w-auto"
-                whileHover={{ rotate: 360 }}
-                transition={{ duration: 0.6 }}
-              />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-700 text-sm font-bold text-white shadow-md">
+                DI
+              </div>
+              <span className="text-base font-semibold text-gray-900">Digital Identity</span>
             </motion.div>
           </div>
 
@@ -85,7 +81,12 @@ export function Navbar({ onCreateAccount }: NavbarProps = {}) {
                 />
               </motion.a>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <SignInButton />
+                <Button 
+                  variant="outline"
+                  onClick={onSignIn}
+                >
+                  Sign In
+                </Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button 
@@ -150,7 +151,16 @@ export function Navbar({ onCreateAccount }: NavbarProps = {}) {
                   Philosophy
                 </motion.a>
                 <div className="flex flex-col gap-2 mt-2">
-                  <SignInButton />
+                  <Button 
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onSignIn?.();
+                    }}
+                  >
+                    Sign In
+                  </Button>
                   <Button 
                     className="bg-teal-700 hover:bg-teal-800 w-full"
                     onClick={() => {

@@ -10,10 +10,12 @@ import { motion, useScroll, useTransform } from 'motion/react';
 import { AccountCreationFlow } from './components/onboarding/AccountCreationFlow';
 import AuthDemo from './demo/AuthDemo';
 import { FaceVerificationTest } from './components/FaceVerificationTest';
+import AuthPage from './demo/AuthPage';
 
 export default function App() {
   const [showAccountCreation, setShowAccountCreation] = useState(false);
   const [showFaceTest, setShowFaceTest] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
   const { scrollY } = useScroll();
   const heroY = useTransform(scrollY, [0, 500], [0, 150]);
   const heroOpacity = useTransform(scrollY, [0, 300], [1, 0]);
@@ -32,11 +34,19 @@ export default function App() {
     if (urlParams.get('test') === 'face') {
       setShowFaceTest(true);
     }
+    if (urlParams.get('login') === 'true') {
+      setShowLogin(true);
+    }
   }, []);
 
   // Dev/demo route: open the auth demo when path is /auth-demo
   if (typeof window !== 'undefined' && window.location.pathname === '/auth-demo') {
     return <AuthDemo />;
+  }
+
+  // Show login page
+  if (showLogin) {
+    return <AuthPage onSignInSuccess={() => setShowLogin(false)} />;
   }
 
   if (showFaceTest) {
@@ -49,7 +59,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar onCreateAccount={() => setShowAccountCreation(true)} />
+      <Navbar onCreateAccount={() => setShowAccountCreation(true)} onSignIn={() => setShowLogin(true)} />
 
       {/* Hero Section */}
       <section className="relative pt-16 overflow-hidden">
@@ -136,7 +146,7 @@ export default function App() {
                 <Button 
                   size="lg" 
                   variant="outline" 
-                  className="border-2 border-white text-white hover:bg-white/10 px-8 py-6 backdrop-blur-sm"
+                  className="border border-white/80 bg-white/10 text-white shadow-[0_10px_30px_rgba(15,118,110,0.25)] hover:bg-white/20 hover:text-white px-8 py-6 backdrop-blur-md"
                 >
                   Explore Our Philosophy
                 </Button>
@@ -161,7 +171,7 @@ export default function App() {
         </div>
       </section>
 
-      {/* About Nuvana Section */}
+      {/* About the Platform Section */}
       <section id="about" className="py-20 bg-gray-50 relative overflow-hidden">
         {/* Background decoration */}
         <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-teal-50/50 to-transparent pointer-events-none" />
@@ -181,7 +191,7 @@ export default function App() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: 0.2 }}
               >
-                Why Nuvana Exists
+                Why This Platform Exists
               </motion.h2>
               <motion.p 
                 className="text-gray-600 text-lg leading-relaxed mb-6"
@@ -190,7 +200,7 @@ export default function App() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: 0.3 }}
               >
-                Nuvana is built for people who want control, clarity, and compassion in their digital lives. We protect your identity, support your recovery, and never exploit your data.
+                Digital Identity Biometric Account Recovery Platform is built for people who want control, clarity, and compassion in their digital lives. We protect your identity, support your recovery, and never exploit your data.
               </motion.p>
               <motion.p 
                 className="text-gray-600 text-lg leading-relaxed"
@@ -402,7 +412,7 @@ export default function App() {
                     <DialogTitle>Our Privacy Commitment</DialogTitle>
                     <DialogDescription className="text-base leading-relaxed space-y-4 mt-4">
                       <p>
-                        At Nuvana, we believe privacy is a fundamental human right. Here's how we protect yours:
+                        At Digital Identity Biometric Account Recovery Platform, we believe privacy is a fundamental human right. Here's how we protect yours:
                       </p>
                       <ul className="list-disc list-inside space-y-2 ml-4">
                         <li>Zero-knowledge encryption: We can't access your data even if we wanted to</li>
@@ -462,7 +472,7 @@ export default function App() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <TestimonialCard
-              quote="I recovered my account without panic. Nuvana made me feel safe."
+              quote="I recovered my account without panic. This platform made me feel safe."
               author="Sarah M."
               index={0}
             />

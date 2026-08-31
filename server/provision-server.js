@@ -52,10 +52,10 @@ app.post('/api/provision-mailbox', (req, res) => {
   const welcome = {
     id: crypto.randomBytes(7).toString('hex'),
     mailboxId: id,
-    from: 'welcome@nuvana.mail',
+    from: 'welcome@digitalidentity.local',
     to: email,
-    subject: 'Welcome to Nuvana Mail!',
-    body: `Hi ${fullName || username},\n\nWelcome to Nuvana Mail. Your mailbox ${email} is ready. Enjoy secure messaging!\n\n— The Nuvana Team`,
+    subject: 'Welcome to Digital Identity',
+    body: `Hi ${fullName || username},\n\nWelcome to Digital Identity. Your secure account recovery mailbox ${email} is ready. Enjoy protected access and seamless recovery.\n\n— The Digital Identity Team`,
     timestamp: new Date().toISOString(),
     folder: 'Inbox',
     isRead: false

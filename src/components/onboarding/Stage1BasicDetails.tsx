@@ -56,7 +56,7 @@ export function Stage1BasicDetails({ onNext, initialData }: Stage1Props) {
   };
 
   const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@nuvana\.mail$/;
+    const emailRegex = /^[^\s@]+@digitalidentity\.mail$/;
     return emailRegex.test(email);
   };
 
@@ -66,7 +66,7 @@ export function Stage1BasicDetails({ onNext, initialData }: Stage1Props) {
 
     if (!formData.fullName.trim()) newErrors.fullName = 'Full name is required';
     if (!formData.dateOfBirth) newErrors.dateOfBirth = 'Date of birth is required';
-    if (!validateEmail(formData.email)) newErrors.email = 'Email must end with @nuvana.mail';
+    if (!validateEmail(formData.email)) newErrors.email = 'Email must end with @digitalidentity.mail';
     if (passwordStrength < 40) newErrors.password = 'Please choose a stronger password';
 
     if (Object.keys(newErrors).length > 0) {
@@ -167,7 +167,7 @@ export function Stage1BasicDetails({ onNext, initialData }: Stage1Props) {
               value={formData.email}
               onChange={(e) => updateField('email', e.target.value)}
               className={`${errors.email ? 'border-red-500' : ''}`}
-              placeholder="yourname@nuvana.mail"
+              placeholder="yourname@digitalidentity.mail"
             />
             {formData.email && validateEmail(formData.email) && (
               <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500" size={20} />
@@ -180,7 +180,7 @@ export function Stage1BasicDetails({ onNext, initialData }: Stage1Props) {
             </p>
           )}
           <p className="text-gray-500 text-sm mt-1">
-            All Nuvana email addresses end with @nuvana.mail
+            All Digital Identity email addresses end with @digitalidentity.mail
           </p>
         </motion.div>
 

@@ -1,6 +1,5 @@
 import { Globe } from 'lucide-react';
 import { motion } from 'motion/react';
-import nuvanaLogo from '../assets/87017c5a5f2a74b5b140c86ec9c9cfa37a2365e1.png';
 
 export function Footer() {
   return (
@@ -29,16 +28,13 @@ export function Footer() {
             transition={{ duration: 0.6 }}
           >
             <div className="flex items-center gap-3 mb-4">
-              <motion.img 
-                src={nuvanaLogo} 
-                alt="Nuvana Logo" 
-                className="h-12 w-auto"
-                whileHover={{ rotate: 360, scale: 1.1 }}
-                transition={{ duration: 0.6 }}
-              />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-teal-600 text-sm font-bold text-white shadow-lg">
+                DI
+              </div>
+              <span className="text-lg font-semibold text-white">Digital Identity</span>
             </div>
             <p className="text-gray-400 max-w-md">
-              A sanctuary for your digital life. Private, peaceful, and emotionally intelligent.
+              A secure digital sanctuary for identity recovery, privacy, and peace of mind.
             </p>
           </motion.div>
 
@@ -102,7 +98,7 @@ export function Footer() {
 
         {/* Bottom bar */}
         <div className="border-t border-gray-800 pt-8 text-center text-gray-500">
-          <p>&copy; {new Date().getFullYear()} Nuvana. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Digital Identity Biometric Account Recovery Platform. All rights reserved.</p>
         </div>
       </div>
     </footer>

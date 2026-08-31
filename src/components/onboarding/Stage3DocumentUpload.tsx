@@ -578,7 +578,7 @@ export function Stage3DocumentUpload({ onNext, onBack }: Stage3Props) {
                     // do NOT store full document numbers in sessionStorage; store masked representation only
                     maskedDocNumber: extracted.docNumber ? maskDocNumber(extracted.docNumber) : undefined
                   };
-                  sessionStorage.setItem('nuvana_verification_summary', JSON.stringify(summary));
+                  sessionStorage.setItem('digital_identity_verification_summary', JSON.stringify(summary));
                 } catch (e) {
                   // ignore sessionStorage errors (private mode etc.)
                 }

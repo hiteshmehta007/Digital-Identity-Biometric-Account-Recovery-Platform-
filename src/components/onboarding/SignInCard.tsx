@@ -88,7 +88,7 @@ export default function SignInCard({ onSignedIn }: Props) {
       className="max-w-md mx-auto bg-white shadow-md rounded-lg p-6"
       aria-labelledby="signin-title"
     >
-      <h3 id="signin-title" className="text-lg font-semibold mb-4">Sign in to Nuvana</h3>
+      <h3 id="signin-title" className="text-lg font-semibold mb-4">Sign in to Digital Identity Recovery</h3>
 
       <label className="block mb-3">
         <span className="text-xs text-gray-500">Email, username or phone</span>
